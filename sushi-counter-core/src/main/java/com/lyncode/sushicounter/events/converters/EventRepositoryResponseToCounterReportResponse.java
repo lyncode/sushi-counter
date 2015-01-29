@@ -1,14 +1,15 @@
 package com.lyncode.sushicounter.events.converters;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.lyncode.sushicounter.events.model.ItemUsageData;
 import com.lyncode.sushicounter.events.repository.EventRepositoryConfiguration;
 import com.lyncode.sushicounter.events.repository.EventRepositoryQueryResponse;
 import com.lyncode.sushicounter.util.XMLGregorianCalenderUtils;
 import org.niso.schemas.counter.*;
-import org.niso.schemas.sushi.*;
 import org.niso.schemas.sushi.Exception;
+import org.niso.schemas.sushi.*;
 import org.niso.schemas.sushi.counter.CounterReportResponse;
 
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -66,33 +67,44 @@ public class EventRepositoryResponseToCounterReportResponse implements Function<
                 return new ReportItem() {{
                     setItemDataType(configuration.getDataType());
                     setItemName(itemUsageData.getName());
-                    getItemIdentifier().add(itemUsageData.getItemId().toIdentifier());
+                    getItemIdentifier().addAll(itemUsageData.getItemIdentifiers());
                     setItemPlatform(configuration.getPlatformName());
-                    setItemPublisher(configuration.getInstitutionName());
-                    getItemPerformance().addAll(Collections2.transform(itemUsageData.getGroups(), toMetric(itemUsageData)));
+                    setItemPublisher(itemUsageData.getPublisher().or(Optional.fromNullable(configuration.getInstitutionName())).orNull());
+                    getItemPerformance().addAll(Collections2.transform(itemUsageData.getItemStats(), toMetric()));
                 }};
             }
         };
     }
 
-    private Function<ItemUsageData.EventGroup, Metric> toMetric(final ItemUsageData itemUsageData) {
-        return new Function<ItemUsageData.EventGroup, Metric>() {
+    private Function<ItemUsageData.ItemStats, Metric> toMetric() {
+        return new Function<ItemUsageData.ItemStats, Metric>() {
             @Override
-            public Metric apply(final ItemUsageData.EventGroup eventGroup) {
+            public Metric apply(final ItemUsageData.ItemStats itemStats) {
                 return new Metric() {{
-                    setCategory(eventGroup.getType().toCategory());
+                    setCategory(itemStats.getType().toCategory());
                     setPeriod(new DateRange() {{
-                        setBegin(reportBeginDate());
-                        setEnd(reportEndDate());
+                        setBegin(XMLGregorianCalenderUtils.fromDate().apply(itemStats.getStart().orNull()));
+                        setEnd(XMLGregorianCalenderUtils.fromDate().apply(itemStats.getEnd().orNull()));
                     }});
-                    getInstance().add(new PerformanceCounter() {{
-                        setMetricType(itemUsageData.getItemType().toMetricType());
-                        setCount(new BigInteger(String.valueOf(eventGroup.getCount())));
-                    }});
+
+                    getInstance().addAll(Collections2.transform(itemStats.getGroups(), toPerformanceMetric()));
                 }};
             }
         };
     }
+
+    private Function<ItemUsageData.ItemEventGroup, PerformanceCounter> toPerformanceMetric() {
+        return new Function<ItemUsageData.ItemEventGroup, PerformanceCounter>() {
+            @Override
+            public PerformanceCounter apply(final ItemUsageData.ItemEventGroup itemEventGroup) {
+                return new PerformanceCounter() {{
+                    setMetricType(itemEventGroup.getType().toMetricType());
+                    setCount(new BigInteger(String.valueOf(itemEventGroup.getCount())));
+                }};
+            }
+        };
+    }
+
 
     private XMLGregorianCalendar reportBeginDate() {
         ReportDefinition reportDefinition = request.getReportDefinition();

@@ -2,7 +2,7 @@ package com.lyncode.sushicounter.events.model;
 
 import org.niso.schemas.counter.MetricType;
 
-public enum ItemType {
+public enum ContentType {
     FT_PS,
     FT_PS_MOBILE,
     FT_PDF,
