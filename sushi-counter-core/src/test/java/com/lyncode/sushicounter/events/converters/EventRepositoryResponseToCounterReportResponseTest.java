@@ -54,11 +54,11 @@ public class EventRepositoryResponseToCounterReportResponseTest {
         ));
     }
 
-    private List<ItemUsageData.ItemStats> eventGroups(ItemUsageData.ItemStats... itemStatses) {
-        return asList(itemStatses);
+    private List<ItemUsageData.ItemStats> eventGroups(ItemUsageData.ItemStats... stats) {
+        return asList(stats);
     }
 
-    private ItemUsageData itemUsageData(final String itemId, final String name, final List<ItemUsageData.ItemStats> itemStatses) {
+    private ItemUsageData itemUsageData(final String itemId, final String name, final List<ItemUsageData.ItemStats> stats) {
         return new ItemUsageData() {
             @Override
             public Collection<Identifier> getItemIdentifiers() {
@@ -76,7 +76,7 @@ public class EventRepositoryResponseToCounterReportResponseTest {
 
             @Override
             public Collection<ItemStats> getItemStats() {
-                return itemStatses;
+                return stats;
             }
 
             @Override
